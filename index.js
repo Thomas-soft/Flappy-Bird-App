@@ -1,32 +1,65 @@
+"use strict";
+
 const image = new Image();
 image.src = "./assets/img/flappy-bird-set.png";
 
 const canvas = document.querySelector("canvas");
 const rectCanvas = canvas.getBoundingClientRect();
-ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d");
 
-function drawBackgound()
+let secondsPassed = 0;
+let oldTimestamp = 0;
+let timePassed = 0;
+let y = 0;
+
+class Background
 {
-    ctx.drawImage(
-        image,
-        0, 0,
-        433, 768,
-        0, 0,
-        rectCanvas.width, rectCanvas.height
-    );
+    constructor()
+    {
+        this.x = 0;
+    }
+
+    drawBackgound(x)
+    {
+        ctx.drawImage(
+            image,
+            0, 0,
+            433, 768,
+            x, 0,
+            rectCanvas.width, rectCanvas.height
+        );
+        ctx.drawImage(
+            image,
+            0, 0,
+            433, 768,
+            x+433-1, 0,
+            rectCanvas.width, rectCanvas.height
+        );
+    }
+
+    move()
+    {
+        setInterval(() => {
+            if (this.x > -432)
+                this.x--;
+            else
+                this.x = 0;
+        }, 20);
+    }
 }
 
-class Flappy
+class Bird
 {
     constructor()
     {
         this.pos = {x: 0, y: 0};
         this.size = {w: 50, h: 36};
         // this.rotation = 0;
-        this.drawFlappyType =
+        this.drawBirdType =
         {
             down: function(pos)
             {
+                background.drawBackgound(background.x);
                 ctx.drawImage(
                     image,
                     433, 0,
@@ -38,6 +71,7 @@ class Flappy
 
             fly: function(pos)
             {
+                background.drawBackgound(background.x);
                 ctx.drawImage(
                     image,
                     433, 36,
@@ -49,6 +83,7 @@ class Flappy
 
             up: function(pos)
             {
+                background.drawBackgound(background.x);
                 ctx.drawImage(
                     image,
                     433, 72,
@@ -58,6 +93,7 @@ class Flappy
                 );
             }
         };
+
     }
 
     init()
@@ -65,9 +101,42 @@ class Flappy
         this.pos.x = rectCanvas.width/2-this.size.w/2;
         this.pos.y = rectCanvas.height/2-this.size.h/2;
 
-        this.drawFlappyType.fly(this.pos);
+        window.requestAnimationFrame(bird_logic.loop);
     }
 }
+
+const bird_logic =
+{
+    loop: function(timestamp)
+    {
+        secondsPassed = (timestamp-oldTimestamp)/1000;
+        oldTimestamp = timestamp;
+    
+        bird_logic.update(secondsPassed);
+        bird.drawBirdType.fly(bird.pos);
+    
+        window.requestAnimationFrame(bird_logic.loop);
+    },
+
+    update: function(secondsPassed)
+    {
+        timePassed += secondsPassed;
+    
+        window.addEventListener("mousedown", () =>
+        {
+            timePassed = 0;
+            y = bird.pos.y;
+        })
+
+        bird.pos.y = bird_logic.easeInOutQuint(timePassed*3, y, -150, 1);
+    },
+
+    easeInOutQuint: function(t, b, c, d)
+    {
+        return (1 - Math.pow(1 - t, 2)) / d*c + b;
+    }
+};
+
 
 class Pipe
 {
@@ -101,10 +170,12 @@ class Pipe
     }
 }
 
-let flappy = new Flappy();
+const background = new Background();
+const bird = new Bird();
 
 window.onload = () =>
 {
-    drawBackgound();
-    flappy.init();
+    background.drawBackgound();
+    background.move();
+    bird.init();
 };
